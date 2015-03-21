@@ -4,6 +4,8 @@ var fs = require('fs');
 var expat = require('node-expat');
 var Readable = require('stream').Readable;
 var util = require('util');
+var MongoClient = require('mongodb').MongoClient;
+
 
 util.inherits(MetaUtil, Readable)
 
@@ -20,12 +22,17 @@ function MetaUtil(opts) {
     this.diff = this.end - this.state;
     this.delay = (opts.delay || 60000)
     this.initialized = true;
-
+    this.tags = (opts.tags ? opts.tags.split(" ") : []);
 
     this.baseURL = opts.baseURL || 'http://planet.osm.org/replication/changesets'
     this._changesetAttrs = {}
     this.started = false;
     //start
+
+    MongoClient.connect('mongodb://localhost:27017/mapoff', function(err, database) {
+      if(err) throw err;
+      that.db = database;
+    });
 
 }
 
@@ -55,6 +62,21 @@ MetaUtil.prototype.run = function() {
     var parserEnd = function(name, attrs) {
         if (name === 'changeset') {
             that.push(new Buffer(JSON.stringify(that._changesetAttrs) + '\n'), 'ascii');
+
+            if (! that._changesetAttrs['comment']) { return; }
+            var intersection = []; var j = 0;
+            var tags = that._changesetAttrs['comment'].split(" ");
+            for (var i=0; i < tags.length; ++i)
+              if (that.tags.indexOf(tags[i]) != -1)
+                intersection[j++] = tags[i];
+            if (j > 0) {
+              that._changesetAttrs['created_at'] = new Date(that._changesetAttrs['created_at']);
+              that._changesetAttrs['created_at'] = new Date(that._changesetAttrs['closed_at']);
+              that.db.collection('changesets').update( { "id": that._changesetAttrs.id },
+                that._changesetAttrs,
+                { upsert: true,  writeConcern: 0  }, 
+                function(err,result){});
+            }
         }
         if (name === 'osm') {
             that.diff -= 1;
