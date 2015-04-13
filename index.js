@@ -22,6 +22,8 @@ function MetaUtil(opts) {
     this.diff = this.end - this.state;
     this.delay = (opts.delay || 60000)
     this.initialized = true;
+    this.dbname = opts.db;
+    this.tags_collection = opts.tags_collection;
     this.tags = (opts.tags ? opts.tags.split(" ") : []);
 
     this.baseURL = opts.baseURL || 'http://planet.osm.org/replication/changesets'
@@ -29,11 +31,10 @@ function MetaUtil(opts) {
     this.started = false;
     //start
 
-    MongoClient.connect('mongodb://localhost:27017/mapoff', function(err, database) {
+    MongoClient.connect('mongodb://localhost:27017/' + this.dbname, function(err, database) {
       if(err) throw err;
       that.db = database;
     });
-
 }
 
 MetaUtil.prototype._read = function() {
@@ -98,6 +99,16 @@ MetaUtil.prototype.run = function() {
     }
 
     var interval = setInterval(function()  {
+
+        if (that.tags_collection != "") {
+          that.db.collection(that.tags_collection).find({}).toArray(function(err, results){ 
+            that.tags = results.map(function(result){
+              return result.tag;
+            });
+          });
+        }
+    
+        console.dir(that.tags);
 
         //Add padding
         var stateStr = that.state.toString().split('').reverse()
