@@ -66,7 +66,7 @@ MetaUtil.prototype.run = function() {
 
             if (! that._changesetAttrs['comment']) { return; }
             var intersection = []; var j = 0;
-            var tags = that._changesetAttrs['comment'].split(" ");
+            var tags = that._changesetAttrs['comment'].split(/[\s,]+/);
             for (var i=0; i < tags.length; ++i)
               if (that.tags.indexOf(tags[i]) != -1)
                 intersection[j++] = tags[i];
@@ -101,14 +101,12 @@ MetaUtil.prototype.run = function() {
     var interval = setInterval(function()  {
 
         if (that.tags_collection != "") {
-          that.db.collection(that.tags_collection).find({}).toArray(function(err, results){ 
+          that.db.collection(that.tags_collection).find({"status":1}).toArray(function(err, results){ 
             that.tags = results.map(function(result){
               return result.tag;
             });
           });
         }
-    
-        console.dir(that.tags);
 
         //Add padding
         var stateStr = that.state.toString().split('').reverse()
