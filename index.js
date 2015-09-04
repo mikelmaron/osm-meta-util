@@ -67,10 +67,14 @@ MetaUtil.prototype.run = function() {
             if (! that._changesetAttrs['comment']) { return; }
             var intersection = []; var j = 0;
             var tags = that._changesetAttrs['comment'].split(/[\s,]+/);
-            for (var i=0; i < tags.length; ++i)
-              if (that.tags.indexOf(tags[i]) != -1)
-                intersection[j++] = tags[i];
+            for (var i=0; i < tags.length; ++i) {
+              var t = tags[i];
+              if (tags[i] != undefined) { t = t.replace('\%23','#'); } 
+              if (that.tags.indexOf(t.toLowerCase()) != -1)
+                intersection[j++] = t;
+            }
             if (j > 0) {
+              that._changesetAttrs['comment'] = that._changesetAttrs['comment'].toLowerCase();
               that._changesetAttrs['created_at'] = new Date(that._changesetAttrs['created_at']);
               that._changesetAttrs['created_at'] = new Date(that._changesetAttrs['closed_at']);
               that.db.collection('changesets').update( { "id": that._changesetAttrs.id },
